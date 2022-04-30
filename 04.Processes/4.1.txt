@@ -1,0 +1,38 @@
+运行结果：
+Produce a trace of what would happen when you run these processes:
+Process 0
+  cpu
+  cpu
+  cpu
+  cpu
+  cpu
+
+Process 1
+  cpu
+  cpu
+  cpu
+  cpu
+  cpu
+
+Important behaviors:
+  System will switch when the current process is FINISHED or ISSUES AN IO
+  After IOs, the process issuing the IO will run LATER (when it is its turn)
+
+
+-c 参数结果:
+python2 process-run.py -l 5:100,5:100 -c
+Time     PID: 0     PID: 1        CPU        IOs
+  1     RUN:cpu      READY          1
+  2     RUN:cpu      READY          1
+  3     RUN:cpu      READY          1
+  4     RUN:cpu      READY          1
+  5     RUN:cpu      READY          1
+  6        DONE    RUN:cpu          1
+  7        DONE    RUN:cpu          1
+  8        DONE    RUN:cpu          1
+  9        DONE    RUN:cpu          1
+ 10        DONE    RUN:cpu          1
+
+
+答:
+CPU利用率为100%,程序没有进行IO.
