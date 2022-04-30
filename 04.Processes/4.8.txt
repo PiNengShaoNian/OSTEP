@@ -1,0 +1,102 @@
+默认参数运行结果:
+Time     PID: 0     PID: 1        CPU        IOs
+  1     RUN:cpu      READY          1
+  2      RUN:io      READY          1
+  3     WAITING    RUN:cpu          1          1
+  4     WAITING    RUN:cpu          1          1
+  5     WAITING    RUN:cpu          1          1
+  6     WAITING       DONE                     1
+  7*     RUN:io       DONE          1
+  8     WAITING       DONE                     1
+  9     WAITING       DONE                     1
+ 10     WAITING       DONE                     1
+ 11     WAITING       DONE                     1
+ 12*       DONE       DONE
+
+Stats: Total Time 12
+Stats: CPU Busy 6 (50.00%)
+Stats: IO Busy  8 (66.67%)
+
+-I IO_RUN_IMMEDIATE 运行结果：
+Time     PID: 0     PID: 1        CPU        IOs
+  1     RUN:cpu      READY          1
+  2      RUN:io      READY          1
+  3     WAITING    RUN:cpu          1          1
+  4     WAITING    RUN:cpu          1          1
+  5     WAITING    RUN:cpu          1          1
+  6     WAITING       DONE                     1
+  7*     RUN:io       DONE          1
+  8     WAITING       DONE                     1
+  9     WAITING       DONE                     1
+ 10     WAITING       DONE                     1
+ 11     WAITING       DONE                     1
+ 12*       DONE       DONE
+
+Stats: Total Time 12
+Stats: CPU Busy 6 (50.00%)
+Stats: IO Busy  8 (66.67%)
+
+-I IO_RUN_LATER 运行结果：
+Time     PID: 0     PID: 1        CPU        IOs
+  1     RUN:cpu      READY          1
+  2      RUN:io      READY          1
+  3     WAITING    RUN:cpu          1          1
+  4     WAITING    RUN:cpu          1          1
+  5     WAITING    RUN:cpu          1          1
+  6     WAITING       DONE                     1
+  7*     RUN:io       DONE          1
+  8     WAITING       DONE                     1
+  9     WAITING       DONE                     1
+ 10     WAITING       DONE                     1
+ 11     WAITING       DONE                     1
+ 12*       DONE       DONE
+
+Stats: Total Time 12
+Stats: CPU Busy 6 (50.00%)
+Stats: IO Busy  8 (66.67%)
+
+-S SWITCH_ON_IO运行结果：
+Time     PID: 0     PID: 1        CPU        IOs
+  1     RUN:cpu      READY          1
+  2      RUN:io      READY          1
+  3     WAITING    RUN:cpu          1          1
+  4     WAITING    RUN:cpu          1          1
+  5     WAITING    RUN:cpu          1          1
+  6     WAITING       DONE                     1
+  7*     RUN:io       DONE          1
+  8     WAITING       DONE                     1
+  9     WAITING       DONE                     1
+ 10     WAITING       DONE                     1
+ 11     WAITING       DONE                     1
+ 12*       DONE       DONE
+
+Stats: Total Time 12
+Stats: CPU Busy 6 (50.00%)
+Stats: IO Busy  8 (66.67%)
+
+-S SWITCH_ON_END运行结果:
+Time     PID: 0     PID: 1        CPU        IOs
+  1     RUN:cpu      READY          1
+  2      RUN:io      READY          1
+  3     WAITING      READY                     1
+  4     WAITING      READY                     1
+  5     WAITING      READY                     1
+  6     WAITING      READY                     1
+  7*     RUN:io      READY          1
+  8     WAITING      READY                     1
+  9     WAITING      READY                     1
+ 10     WAITING      READY                     1
+ 11     WAITING      READY                     1
+ 12*       DONE    RUN:cpu          1
+ 13        DONE    RUN:cpu          1
+ 14        DONE    RUN:cpu          1
+
+Stats: Total Time 14
+Stats: CPU Busy 6 (42.86%)
+Stats: IO Busy  8 (57.14%)
+
+答:
+当使用-I IO_RUN_IMMEDIATE和-I IO_RUN_LATER时由于IO比较多，IO等待时长要比CPU运行时长长的多，所以
+两个选项并没有区别。
+当使用 -S SWITCH_ON_END和-S SWITCH_ON_IO是，由于IO任务多，等待时长比较长如果要等待一个I/O密集进程结束
+在切换进程的话会让CPU利用率变得更低。 

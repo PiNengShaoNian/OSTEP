@@ -1,0 +1,27 @@
+运行结果：
+Time     PID: 0     PID: 1     PID: 2     PID: 3        CPU        IOs
+  1      RUN:io      READY      READY      READY          1
+  2     WAITING    RUN:cpu      READY      READY          1          1
+  3     WAITING    RUN:cpu      READY      READY          1          1
+  4     WAITING    RUN:cpu      READY      READY          1          1
+  5     WAITING    RUN:cpu      READY      READY          1          1
+  6*     RUN:io      READY      READY      READY          1
+  7     WAITING    RUN:cpu      READY      READY          1          1
+  8     WAITING       DONE    RUN:cpu      READY          1          1
+  9     WAITING       DONE    RUN:cpu      READY          1          1
+ 10     WAITING       DONE    RUN:cpu      READY          1          1
+ 11*     RUN:io       DONE      READY      READY          1
+ 12     WAITING       DONE    RUN:cpu      READY          1          1
+ 13     WAITING       DONE    RUN:cpu      READY          1          1
+ 14     WAITING       DONE       DONE    RUN:cpu          1          1
+ 15     WAITING       DONE       DONE    RUN:cpu          1          1
+ 16*       DONE       DONE       DONE    RUN:cpu          1
+ 17        DONE       DONE       DONE    RUN:cpu          1
+ 18        DONE       DONE       DONE    RUN:cpu          1
+
+Stats: Total Time 18
+Stats: CPU Busy 18 (100.00%)
+Stats: IO Busy  12 (66.67%)
+
+答: CPU得到了充分的利用，运行一个刚刚完成I/O的I/O密集进程能让一个潜在的IO任务能够尽早的开始，
+    以减少CPU的空闲等待的时间。
