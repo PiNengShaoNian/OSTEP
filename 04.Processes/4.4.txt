@@ -1,0 +1,28 @@
+运行结果：
+Produce a trace of what would happen when you run these processes:
+Process 0
+  io
+
+Process 1
+  cpu
+  cpu
+  cpu
+  cpu
+
+Important behaviors:
+  System will switch when the current process is FINISHED
+  After IOs, the process issuing the IO will run LATER (when it is its turn)
+
+-c运行结果：
+Time     PID: 0     PID: 1        CPU        IOs
+  1      RUN:io      READY          1
+  2     WAITING      READY                     1
+  3     WAITING      READY                     1
+  4     WAITING      READY                     1
+  5     WAITING      READY                     1
+  6*       DONE    RUN:cpu          1
+  7        DONE    RUN:cpu          1
+  8        DONE    RUN:cpu          1
+  9        DONE    RUN:cpu          1
+
+在进程0进行io后操作系统不会立即切换到进程1，而是等到进程0完成再去执行进程1，总共花费9个周期完成执行。
