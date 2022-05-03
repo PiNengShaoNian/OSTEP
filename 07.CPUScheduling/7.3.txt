@@ -1,0 +1,31 @@
+Execution trace:
+  [ time   0 ] Run job   0 for 1.00 secs
+  [ time   1 ] Run job   1 for 1.00 secs
+  [ time   2 ] Run job   2 for 1.00 secs
+  [ time   3 ] Run job   0 for 1.00 secs
+  [ time   4 ] Run job   1 for 1.00 secs
+  [ time   5 ] Run job   2 for 1.00 secs
+  [ time   6 ] Run job   0 for 1.00 secs
+  [ time   7 ] Run job   1 for 1.00 secs
+  [ time   8 ] Run job   2 for 1.00 secs
+  [ time   9 ] Run job   0 for 1.00 secs
+  [ time  10 ] Run job   1 for 1.00 secs
+                       .
+                       .
+                       .
+  [ time 591 ] Run job   0 for 1.00 secs
+  [ time 592 ] Run job   1 for 1.00 secs
+  [ time 593 ] Run job   2 for 1.00 secs
+  [ time 594 ] Run job   0 for 1.00 secs
+  [ time 595 ] Run job   1 for 1.00 secs
+  [ time 596 ] Run job   2 for 1.00 secs
+  [ time 597 ] Run job   0 for 1.00 secs ( DONE at 598.00 )
+  [ time 598 ] Run job   1 for 1.00 secs ( DONE at 599.00 )
+  [ time 599 ] Run job   2 for 1.00 secs ( DONE at 600.00 )
+
+Final statistics:
+  Job   0 -- Response: 0.00  Turnaround 598.00  Wait 398.00
+  Job   1 -- Response: 1.00  Turnaround 599.00  Wait 399.00
+  Job   2 -- Response: 2.00  Turnaround 600.00  Wait 400.00
+
+  Average -- Response: 1.00  Turnaround 599.00  Wait 399.00
