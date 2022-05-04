@@ -1,0 +1,106 @@
+python2 mlfq.py -l 0,200,9:0,200,0 -c -S -i 0
+设置-S并在时间片快用完时(设置io频率为9刚好比一个时间片小1)发起一个用时很短的io(设置-i为0)
+这样即使是一个cpu密集的任务也能糊弄调度程序进而获得很高的cpu占用
+
+运行结果：
+python2 mlfq.py -l 0,200,9:0,200,0 -c -S -i 0
+Here is the list of inputs:
+OPTIONS jobs 2
+OPTIONS queues 3
+OPTIONS allotments for queue  2 is   1
+OPTIONS quantum length for queue  2 is  10
+OPTIONS allotments for queue  1 is   1
+OPTIONS quantum length for queue  1 is  10
+OPTIONS allotments for queue  0 is   1
+OPTIONS quantum length for queue  0 is  10
+OPTIONS boost 0
+OPTIONS ioTime 0
+OPTIONS stayAfterIO True
+OPTIONS iobump False
+
+
+For each job, three defining characteristics are given:
+  startTime : at what time does the job enter the system
+  runTime   : the total CPU time needed by the job to finish
+  ioFreq    : every ioFreq time units, the job issues an I/O
+              (the I/O takes ioTime units to complete)
+
+Job List:
+  Job  0: startTime   0 - runTime 200 - ioFreq   9
+  Job  1: startTime   0 - runTime 200 - ioFreq   0
+
+
+Execution Trace:
+
+[ time 0 ] JOB BEGINS by JOB 0
+[ time 0 ] JOB BEGINS by JOB 1
+[ time 0 ] Run JOB 0 at PRIORITY 2 [ TICKS 9 ALLOT 1 TIME 199 (of 200) ]
+[ time 1 ] Run JOB 0 at PRIORITY 2 [ TICKS 8 ALLOT 1 TIME 198 (of 200) ]
+[ time 2 ] Run JOB 0 at PRIORITY 2 [ TICKS 7 ALLOT 1 TIME 197 (of 200) ]
+[ time 3 ] Run JOB 0 at PRIORITY 2 [ TICKS 6 ALLOT 1 TIME 196 (of 200) ]
+[ time 4 ] Run JOB 0 at PRIORITY 2 [ TICKS 5 ALLOT 1 TIME 195 (of 200) ]
+[ time 5 ] Run JOB 0 at PRIORITY 2 [ TICKS 4 ALLOT 1 TIME 194 (of 200) ]
+[ time 6 ] Run JOB 0 at PRIORITY 2 [ TICKS 3 ALLOT 1 TIME 193 (of 200) ]
+[ time 7 ] Run JOB 0 at PRIORITY 2 [ TICKS 2 ALLOT 1 TIME 192 (of 200) ]
+[ time 8 ] Run JOB 0 at PRIORITY 2 [ TICKS 1 ALLOT 1 TIME 191 (of 200) ]
+[ time 9 ] IO_START by JOB 0
+IO DONE
+[ time 9 ] IO_DONE by JOB 0
+[ time 9 ] Run JOB 1 at PRIORITY 2 [ TICKS 9 ALLOT 1 TIME 199 (of 200) ]
+[ time 10 ] Run JOB 1 at PRIORITY 2 [ TICKS 8 ALLOT 1 TIME 198 (of 200) ]
+[ time 11 ] Run JOB 1 at PRIORITY 2 [ TICKS 7 ALLOT 1 TIME 197 (of 200) ]
+[ time 12 ] Run JOB 1 at PRIORITY 2 [ TICKS 6 ALLOT 1 TIME 196 (of 200) ]
+[ time 13 ] Run JOB 1 at PRIORITY 2 [ TICKS 5 ALLOT 1 TIME 195 (of 200) ]
+[ time 14 ] Run JOB 1 at PRIORITY 2 [ TICKS 4 ALLOT 1 TIME 194 (of 200) ]
+[ time 15 ] Run JOB 1 at PRIORITY 2 [ TICKS 3 ALLOT 1 TIME 193 (of 200) ]
+[ time 16 ] Run JOB 1 at PRIORITY 2 [ TICKS 2 ALLOT 1 TIME 192 (of 200) ]
+[ time 17 ] Run JOB 1 at PRIORITY 2 [ TICKS 1 ALLOT 1 TIME 191 (of 200) ]
+[ time 18 ] Run JOB 1 at PRIORITY 2 [ TICKS 0 ALLOT 1 TIME 190 (of 200) ]
+[ time 19 ] Run JOB 0 at PRIORITY 2 [ TICKS 9 ALLOT 1 TIME 190 (of 200) ]
+[ time 20 ] Run JOB 0 at PRIORITY 2 [ TICKS 8 ALLOT 1 TIME 189 (of 200) ]
+[ time 21 ] Run JOB 0 at PRIORITY 2 [ TICKS 7 ALLOT 1 TIME 188 (of 200) ]
+[ time 22 ] Run JOB 0 at PRIORITY 2 [ TICKS 6 ALLOT 1 TIME 187 (of 200) ]
+[ time 23 ] Run JOB 0 at PRIORITY 2 [ TICKS 5 ALLOT 1 TIME 186 (of 200) ]
+[ time 24 ] Run JOB 0 at PRIORITY 2 [ TICKS 4 ALLOT 1 TIME 185 (of 200) ]
+[ time 25 ] Run JOB 0 at PRIORITY 2 [ TICKS 3 ALLOT 1 TIME 184 (of 200) ]
+[ time 26 ] Run JOB 0 at PRIORITY 2 [ TICKS 2 ALLOT 1 TIME 183 (of 200) ]
+[ time 27 ] Run JOB 0 at PRIORITY 2 [ TICKS 1 ALLOT 1 TIME 182 (of 200) ]
+[ time 28 ] IO_START by JOB 0
+IO DONE
+                     .
+                     .
+                     .
+IO DONE
+[ time 208 ] IO_DONE by JOB 0
+[ time 208 ] Run JOB 0 at PRIORITY 2 [ TICKS 9 ALLOT 1 TIME 1 (of 200) ]
+[ time 209 ] Run JOB 0 at PRIORITY 2 [ TICKS 8 ALLOT 1 TIME 0 (of 200) ]
+[ time 210 ] FINISHED JOB 0
+[ time 210 ] Run JOB 1 at PRIORITY 1 [ TICKS 9 ALLOT 1 TIME 189 (of 200) ]
+[ time 211 ] Run JOB 1 at PRIORITY 1 [ TICKS 8 ALLOT 1 TIME 188 (of 200) ]
+[ time 212 ] Run JOB 1 at PRIORITY 1 [ TICKS 7 ALLOT 1 TIME 187 (of 200) ]
+[ time 213 ] Run JOB 1 at PRIORITY 1 [ TICKS 6 ALLOT 1 TIME 186 (of 200) ]
+[ time 214 ] Run JOB 1 at PRIORITY 1 [ TICKS 5 ALLOT 1 TIME 185 (of 200) ]
+[ time 215 ] Run JOB 1 at PRIORITY 1 [ TICKS 4 ALLOT 1 TIME 184 (of 200) ]
+[ time 216 ] Run JOB 1 at PRIORITY 1 [ TICKS 3 ALLOT 1 TIME 183 (of 200) ]
+[ time 217 ] Run JOB 1 at PRIORITY 1 [ TICKS 2 ALLOT 1 TIME 182 (of 200) ]
+[ time 218 ] Run JOB 1 at PRIORITY 1 [ TICKS 1 ALLOT 1 TIME 181 (of 200) ]
+[ time 219 ] Run JOB 1 at PRIORITY 1 [ TICKS 0 ALLOT 1 TIME 180 (of 200) ]
+[ time 220 ] Run JOB 1 at PRIORITY 0 [ TICKS 9 ALLOT 1 TIME 179 (of 200) ]
+[ time 221 ] Run JOB 1 at PRIORITY 0 [ TICKS 8 ALLOT 1 TIME 178 (of 200) ]
+[ time 222 ] Run JOB 1 at PRIORITY 0 [ TICKS 7 ALLOT 1 TIME 177 (of 200) ]
+[ time 223 ] Run JOB 1 at PRIORITY 0 [ TICKS 6 ALLOT 1 TIME 176 (of 200) ]
+                             .
+                             .
+                             .
+[ time 395 ] Run JOB 1 at PRIORITY 0 [ TICKS 4 ALLOT 1 TIME 4 (of 200) ]
+[ time 396 ] Run JOB 1 at PRIORITY 0 [ TICKS 3 ALLOT 1 TIME 3 (of 200) ]
+[ time 397 ] Run JOB 1 at PRIORITY 0 [ TICKS 2 ALLOT 1 TIME 2 (of 200) ]
+[ time 398 ] Run JOB 1 at PRIORITY 0 [ TICKS 1 ALLOT 1 TIME 1 (of 200) ]
+[ time 399 ] Run JOB 1 at PRIORITY 0 [ TICKS 0 ALLOT 1 TIME 0 (of 200) ]
+[ time 400 ] FINISHED JOB 1
+
+Final statistics:
+  Job  0: startTime   0 - response   0 - turnaround 210
+  Job  1: startTime   0 - response   9 - turnaround 400
+
+  Avg  1: startTime n/a - response 4.50 - turnaround 305.00
