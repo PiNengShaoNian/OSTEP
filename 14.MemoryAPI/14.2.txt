@@ -1,0 +1,12 @@
+运行:
+gcc 14.1.c -g
+
+
+输出信息：
+gdb a.out
+
+(gdb) run
+Starting program: /xxx/14.MemoryAPI/a.out
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Inferior 1 (process 744) exited normally]
