@@ -1,0 +1,2 @@
+MaxBaseAddr + Limit = MaxVirAddr = PhysMemSize - 1
+MaxBaseAddr = PhysMemSize - 1 - Limit
