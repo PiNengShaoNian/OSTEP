@@ -1,0 +1,72 @@
+地址空间大小为128,因此虚拟地址为7位，其结构为高二位而段编号，低5位位偏移量
+
+  x  x      x   x   x   x   x
+  Seg              Offset
+
+其中段0(正向增长)的物理地址计算方式为 = Offset + BaseAddr1
+判断段0的虚拟地址是否合法只需要判断Offset是否小于Limit0即可
+
+段1(逆向增长)的物理地址计算方式为 = Offset - (1 << Bit_Length(Offset)) + BaseAddr2
+    在这里 Bit_Length(Offset) = 5
+判断段1的虚拟地址是否合法需要判断AbS(Offset - (1 << Bit_Length(Offset)))是否小于等于Limit1
+
+python2 ./segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 0 -c
+ARG seed 0
+ARG address space size 128
+ARG phys mem size 512
+
+Segment register information:
+
+  Segment 0 base  (grows positive) : 0x00000000 (decimal 0)
+  Segment 0 limit                  : 20
+
+  Segment 1 base  (grows negative) : 0x00000200 (decimal 512)
+  Segment 1 limit                  : 20
+
+Virtual Address Trace
+  VA  0: 0x0000006c (decimal:  108) --> VALID in SEG1: 0x000001ec (decimal:  492)
+  VA  1: 0x00000061 (decimal:   97) --> SEGMENTATION VIOLATION (SEG1)
+  VA  2: 0x00000035 (decimal:   53) --> SEGMENTATION VIOLATION (SEG0)
+  VA  3: 0x00000021 (decimal:   33) --> SEGMENTATION VIOLATION (SEG0)
+  VA  4: 0x00000041 (decimal:   65) --> SEGMENTATION VIOLATION (SEG1)
+
+
+python2 ./segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 1 -c
+ARG seed 1
+ARG address space size 128
+ARG phys mem size 512
+
+Segment register information:
+
+  Segment 0 base  (grows positive) : 0x00000000 (decimal 0)
+  Segment 0 limit                  : 20
+
+  Segment 1 base  (grows negative) : 0x00000200 (decimal 512)
+  Segment 1 limit                  : 20
+
+Virtual Address Trace
+  VA  0: 0x00000011 (decimal:   17) --> VALID in SEG0: 0x00000011 (decimal:   17)
+  VA  1: 0x0000006c (decimal:  108) --> VALID in SEG1: 0x000001ec (decimal:  492)
+  VA  2: 0x00000061 (decimal:   97) --> SEGMENTATION VIOLATION (SEG1)
+  VA  3: 0x00000020 (decimal:   32) --> SEGMENTATION VIOLATION (SEG0)
+  VA  4: 0x0000003f (decimal:   63) --> SEGMENTATION VIOLATION (SEG0)
+
+python2 ./segmentation.py -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -s 2 -c
+ARG seed 2
+ARG address space size 128
+ARG phys mem size 512
+
+Segment register information:
+
+  Segment 0 base  (grows positive) : 0x00000000 (decimal 0)
+  Segment 0 limit                  : 20
+
+  Segment 1 base  (grows negative) : 0x00000200 (decimal 512)
+  Segment 1 limit                  : 20
+
+Virtual Address Trace
+  VA  0: 0x0000007a (decimal:  122) --> VALID in SEG1: 0x000001fa (decimal:  506)
+  VA  1: 0x00000079 (decimal:  121) --> VALID in SEG1: 0x000001f9 (decimal:  505)
+  VA  2: 0x00000007 (decimal:    7) --> VALID in SEG0: 0x00000007 (decimal:    7)
+  VA  3: 0x0000000a (decimal:   10) --> VALID in SEG0: 0x0000000a (decimal:   10)
+  VA  4: 0x0000006a (decimal:  106) --> SEGMENTATION VIOLATION (SEG1)
