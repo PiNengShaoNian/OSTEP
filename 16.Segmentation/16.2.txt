@@ -1,0 +1,33 @@
+段0最高的合法地址:
+Seg = 0    Offset = Limit0 - 1 = 19
+0 0         1 0 0 1 1
+也就是0x13=19
+
+段1最低的合法地址:
+Seg     Offset = (AddrSpace - Limit1) & 0b0011111 = 12
+1 1         0 1 1 0 0
+也就是0x6c=108
+
+整个地址空间中最低的非法地址也就是段0最高的合法地址加一,也就是0x14=20
+
+整个地址空间中最高的非法地址也就是段1最低的合法地址减一，也就是0x6b=107
+
+运行结果
+python2 ./segmentation.py  -a 128 -p 512 -b 0 -l 20 -B 512 -L 20 -A 19,108,20,107 -c
+ARG seed 0
+ARG address space size 128
+ARG phys mem size 512
+
+Segment register information:
+
+  Segment 0 base  (grows positive) : 0x00000000 (decimal 0)
+  Segment 0 limit                  : 20
+
+  Segment 1 base  (grows negative) : 0x00000200 (decimal 512)
+  Segment 1 limit                  : 20
+
+Virtual Address Trace
+  VA  0: 0x00000013 (decimal:   19) --> VALID in SEG0: 0x00000013 (decimal:   19)
+  VA  1: 0x0000006c (decimal:  108) --> VALID in SEG1: 0x000001ec (decimal:  492)
+  VA  2: 0x00000014 (decimal:   20) --> SEGMENTATION VIOLATION (SEG0)
+  VA  3: 0x0000006b (decimal:  107) --> SEGMENTATION VIOLATION (SEG1)
