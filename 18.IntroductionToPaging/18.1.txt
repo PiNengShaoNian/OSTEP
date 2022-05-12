@@ -1,0 +1,26 @@
+首先，要理解线性页表大小如何随着地址空间的增长而变化：
+
+paging-linear-translate.py -P 1k -a 1m -p 512m -v -n 0
+paging-linear-translate.py -P 1k -a 2m -p 512m -v -n 0
+paging-linear-translate.py -P 1k -a 4m -p 512m -v -n 0
+paging-linear-translate.py -P 1k -a 1m -p 512m -v -n 0
+页大小为 1k,地址空间大小为 1m
+
+所以页数为 1m/1k = 1024
+
+其余算法同理,页数分别为 2048, 4096
+
+然后，理解线性页面大小如何随页大小的增长而变化：
+
+注: 原文为:Then, to understand how linear page table size changes as page size grows
+
+即随着页面大小变化,页表大小如何变化
+
+paging-linear-translate.py -P 1k -a 1m -p 512m -v -n 0
+paging-linear-translate.py -P 2k -a 1m -p 512m -v -n 0
+paging-linear-translate.py -P 4k -a 1m -p 512m -v -n 0
+页表大小 = 地址空间大小/页面大小
+
+在运行这些命令之前，请试着想想预期的趋势。页表大小如何随地址空间的增长而改变？随着页大小的增长呢？为什么一般来说，我们不应该使用很大的页呢？
+
+当使用很大的页时会造成大量空间被浪费(页的空间没有被使用完也不能再分割)
