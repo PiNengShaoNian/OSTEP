@@ -1,0 +1,17 @@
+❯ python2 paging-policy.py -s 0 -n 10 -c -p FIFO
+FINALSTATS hits 1   misses 9   hitrate 10.00
+
+❯ python2 paging-policy.py -s 0 -n 10 -c -p LRU
+FINALSTATS hits 2   misses 8   hitrate 20.00
+
+❯ python2 paging-policy.py -s 0 -n 10 -c -p OPT
+FINALSTATS hits 4   misses 6   hitrate 40.00
+
+❯ python2 paging-policy.py -s 0 -n 10 -c -p UNOPT
+FINALSTATS hits 0   misses 10   hitrate 0.00
+
+❯ python2 paging-policy.py -s 0 -n 10 -c -p RAND
+FINALSTATS hits 0   misses 10   hitrate 0.00
+
+❯ python2 paging-policy.py -s 0 -n 10 -c -p CLOCK
+FINALSTATS hits 1   misses 9   hitrate 10.00
