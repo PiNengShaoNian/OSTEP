@@ -1,0 +1,67 @@
+python2 ./x86.py -p wait-for-me.s -a ax=0,ax=1 -R ax -M 2000 -c
+
+ 2000      ax          Thread 0                Thread 1
+    0       0
+    0       0   1000 test $1, %ax
+    0       0   1001 je .signaller
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       0   1002 mov  2000, %cx
+    0       0   1003 test $1, %cx
+    0       0   1004 jne .waiter
+    0       1   ------ Interrupt ------  ------ Interrupt ------
+    0       1                            1000 test $1, %ax
+    0       1                            1001 je .signaller
+    1       1                            1006 mov  $1, 2000
+    1       1                            1007 halt
+    1       0   ----- Halt;Switch -----  ----- Halt;Switch -----
+    1       0   1002 mov  2000, %cx
+    1       0   1003 test $1, %cx
+    1       0   1004 jne .waiter
+    1       0   1005 halt
+
+现在线程0成了等待者，线程1成了信号发送者
+i越大，线程0等待的时间越长，越浪费cpu资源

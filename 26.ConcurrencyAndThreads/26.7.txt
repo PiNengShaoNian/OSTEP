@@ -1,0 +1,86 @@
+ python2 ./x86.py -p looping-race-nolock.s -a bx=1 =t 2 -M 2000 -c -i 1
+
+ 2000          Thread 0                Thread 1
+    0
+    0   1000 mov 2000, %ax
+    0   ------ Interrupt ------  ------ Interrupt ------
+    0                            1000 mov 2000, %ax
+    0   ------ Interrupt ------  ------ Interrupt ------
+    0   1001 add $1, %ax
+    0   ------ Interrupt ------  ------ Interrupt ------
+    0                            1001 add $1, %ax
+    0   ------ Interrupt ------  ------ Interrupt ------
+    1   1002 mov %ax, 2000
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1                            1002 mov %ax, 2000
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1   1003 sub  $1, %bx
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1                            1003 sub  $1, %bx
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1   1004 test $0, %bx
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1                            1004 test $0, %bx
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1   1005 jgt .top
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1                            1005 jgt .top
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1   1006 halt
+    1   ----- Halt;Switch -----  ----- Halt;Switch -----
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1                            1006 halt
+
+
+python2 ./x86.py -p looping-race-nolock.s -a bx=1 =t 2 -M 2000 -c -i 2
+ 2000          Thread 0                Thread 1
+    0
+    0   1000 mov 2000, %ax
+    0   1001 add $1, %ax
+    0   ------ Interrupt ------  ------ Interrupt ------
+    0                            1000 mov 2000, %ax
+    0                            1001 add $1, %ax
+    0   ------ Interrupt ------  ------ Interrupt ------
+    1   1002 mov %ax, 2000
+    1   1003 sub  $1, %bx
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1                            1002 mov %ax, 2000
+    1                            1003 sub  $1, %bx
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1   1004 test $0, %bx
+    1   1005 jgt .top
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1                            1004 test $0, %bx
+    1                            1005 jgt .top
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1   1006 halt
+    1   ----- Halt;Switch -----  ----- Halt;Switch -----
+    1                            1006 halt
+
+
+
+ python2 ./x86.py -p looping-race-nolock.s -a bx=1 =t 2 -M 2000 -c -i 3
+  2000          Thread 0                Thread 1
+    0
+    0   1000 mov 2000, %ax
+    0   1001 add $1, %ax
+    1   1002 mov %ax, 2000
+    1   ------ Interrupt ------  ------ Interrupt ------
+    1                            1000 mov 2000, %ax
+    1                            1001 add $1, %ax
+    2                            1002 mov %ax, 2000
+    2   ------ Interrupt ------  ------ Interrupt ------
+    2   1003 sub  $1, %bx
+    2   1004 test $0, %bx
+    2   1005 jgt .top
+    2   ------ Interrupt ------  ------ Interrupt ------
+    2                            1003 sub  $1, %bx
+    2                            1004 test $0, %bx
+    2                            1005 jgt .top
+    2   ------ Interrupt ------  ------ Interrupt ------
+    2   1006 halt
+    2   ----- Halt;Switch -----  ----- Halt;Switch -----
+    2                            1006 halt
+
+
+可以看到当i=3时，就能保证任何时刻只有一个线程处于临界区中，此时程序会给出正确答案。
