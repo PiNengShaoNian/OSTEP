@@ -1,0 +1,4 @@
+python2 x86.py -p ticket.s -a bx=1000,bx=1000 -c -M count
+
+
+是,大量时间用于自旋

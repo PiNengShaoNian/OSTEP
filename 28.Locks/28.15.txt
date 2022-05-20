@@ -1,0 +1,2 @@
+减少了写锁(xchg)操作, Pentium cpu 上, xchg需要三个时钟周期,参考 而mov只需要一个时钟周期
+

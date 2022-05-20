@@ -23,7 +23,7 @@ class cpu:
     #
     # INIT: how much memory?
     #
-    def __init__(self, memory, memtrace, regtrace, cctrace, compute, verbose):
+    def __init__(self, memory, memtrace, regtrace, cctrace, compute, verbose, printstats, headercount):
         #
         # CONSTANTS
         #
@@ -42,8 +42,10 @@ class cpu:
         self.REG_BX         = 2
         self.REG_CX         = 3
         self.REG_DX         = 4
-        self.REG_SP         = 5
-        self.REG_BP         = 6
+        self.REG_EX         = 5
+        self.REG_FX         = 6
+        self.REG_SP         = 7
+        self.REG_BP         = 8
 
         # system memory: in KB
         self.max_memory     = memory * 1024
@@ -54,6 +56,8 @@ class cpu:
         self.cctrace        = cctrace
         self.compute        = compute
         self.verbose        = verbose
+        self.printstats     = printstats
+        self.headercount    = headercount
 
         self.PC             = 0
         self.registers      = {}
@@ -63,8 +67,12 @@ class cpu:
         self.memory         = {}
         self.pmemory        = {}  # for printable version of what's in memory (instructions)
 
-        self.condlist       = [self.COND_GTE, self.COND_GT, self.COND_LTE, self.COND_LT, self.COND_NEQ, self.COND_EQ]
-        self.regnums        = [self.REG_ZERO, self.REG_AX,  self.REG_BX,   self.REG_CX,  self.REG_DX,   self.REG_SP,  self.REG_BP]
+        self.condlist       = [self.COND_GTE, self.COND_GT,  self.COND_LTE,
+                               self.COND_LT,  self.COND_NEQ, self.COND_EQ]
+        self.regnums        = [self.REG_ZERO,
+                               self.REG_AX, self.REG_BX, self.REG_CX, 
+                               self.REG_DX, self.REG_EX, self.REG_FX,
+                               self.REG_SP, self.REG_BP]
 
         self.regnames         = {}
         self.regnames['zero'] = self.REG_ZERO # hidden zero-valued register
@@ -72,6 +80,8 @@ class cpu:
         self.regnames['bx']   = self.REG_BX
         self.regnames['cx']   = self.REG_CX
         self.regnames['dx']   = self.REG_DX
+        self.regnames['ex']   = self.REG_EX
+        self.regnames['fx']   = self.REG_FX
         self.regnames['sp']   = self.REG_SP
         self.regnames['bp']   = self.REG_BP
 
@@ -166,27 +176,33 @@ class cpu:
         print 'bx:', self.registers[self.REG_BX], 
         print 'cx:', self.registers[self.REG_CX], 
         print 'dx:', self.registers[self.REG_DX],
+        print 'ex:', self.registers[self.REG_EX],
+        print 'fx:', self.registers[self.REG_FX],
+        return
 
     def mdump(self, index):
         print 'm[%d] ' % index, self.memory[index]
+        return
 
+    # 
+    # MEMORY MOVES
+    # 
     def move_i_to_r(self, src, dst):
         self.registers[dst] = src
         return 0
 
     # memory: value, register, register
-    def move_i_to_m(self, src, value, reg1, reg2):
-        tmp = value + self.registers[reg1] + self.registers[reg2]
+    def move_i_to_m(self, src, value, reg1, reg2, scale):
+        tmp = value + self.registers[reg1] + (scale * self.registers[reg2])
         self.memory[tmp] = src
         return 0
 
-    def move_m_to_r(self, value, reg1, reg2, dst):
-        tmp = value + self.registers[reg1] + self.registers[reg2]
-        # print 'doing mov', 'val:', value, 'r1:', self.get_regname(reg1), self.registers[reg1], 'r2:', self.get_regname(reg2), self.registers[reg2], 'dst', self.get_regname(dst), 'tmp', tmp, 'reg[dst]', self.registers[dst], 'mem', self.memory[tmp]
+    def move_m_to_r(self, value, reg1, reg2, scale, dst):
+        tmp = value + self.registers[reg1] + (scale * self.registers[reg2])
         self.registers[dst] = self.memory[tmp] 
 
-    def move_r_to_m(self, src, value, reg1, reg2):
-        tmp = value + self.registers[reg1] + self.registers[reg2]
+    def move_r_to_m(self, src, value, reg1, reg2, scale):
+        tmp = value + self.registers[reg1] + (scale * self.registers[reg2])
         self.memory[tmp] = self.registers[src]
         return 0
 
@@ -194,12 +210,30 @@ class cpu:
         self.registers[dst] = self.registers[src]
         return 0
 
+    #
+    # LOAD EFFECTIVE ADDRESS (everything but the final change of memory value)
+    #
+    def lea_m_to_r(self, value, reg1, reg2, scale, dst):
+        tmp = value + self.registers[reg1] + (scale * self.registers[reg2])
+        self.registers[dst] = tmp
+
+    #
+    # ARITHMETIC INSTRUCTIONS
+    # 
     def add_i_to_r(self, src, dst):
         self.registers[dst] += src
         return 0
 
     def add_r_to_r(self, src, dst):
         self.registers[dst] += self.registers[src]
+        return 0
+
+    def mul_i_to_r(self, src, dst):
+        self.registers[dst] *= src
+        return 0
+
+    def mul_r_to_r(self, src, dst):
+        self.registers[dst] *= self.registers[src]
         return 0
 
     def sub_i_to_r(self, src, dst):
@@ -210,6 +244,8 @@ class cpu:
         self.registers[dst] -= self.registers[src]
         return 0
 
+    def neg_r(self, src):
+        self.registers[src] = -self.registers[src]
 
     #
     # SUPPORT FOR LOCKS
@@ -315,10 +351,9 @@ class cpu:
         self.memory[self.registers[self.REG_SP]] = self.registers[reg]
         return 0
 
-    def push_m(self, value, reg1, reg2):
-        # print 'push_m', value, reg1, reg2
+    def push_m(self, value, reg1, reg2, scale):
         self.registers[self.REG_SP] -= 4
-        tmp = value + self.registers[reg1] + self.registers[reg2]
+        tmp = value + self.registers[reg1] + (self.registers[reg2] * scale)
         # push address onto stack, not memory value itself
         self.memory[self.registers[self.REG_SP]] = tmp
         return 0
@@ -327,7 +362,7 @@ class cpu:
         self.registers[self.REG_SP] += 4
 
     def pop_r(self, dst):
-        self.registers[dst] = self.registers[self.REG_SP]
+        self.registers[dst] = self.memory[self.registers[self.REG_SP]]
         self.registers[self.REG_SP] += 4
 
     #
@@ -338,6 +373,13 @@ class cpu:
             return self.regnames[r]
         zassert(False, 'Register %s is not a valid register' % r)
         return
+
+    def getregname(self, r):
+        t = r.strip()
+        if t == '':
+            return 'zero'
+        zassert(t[0] == '%', 'Expecting a proper register name, got [%s]' % r)
+        return r.split('%')[1].strip()
 
     #
     # HELPER in parsing mov (quite primitive) and other ops
@@ -353,57 +395,98 @@ class cpu:
     #    10(%ax,%bx,4) - XXX (not handled)
     #
     def getarg(self, arg):
-        tmp1 = arg.replace(',', '')
+        tmp1 = arg.replace(',', ' ')
         tmp  = tmp1.replace(' \t', '')
 
         if tmp[0] == '$':
-            zassert(len(tmp) == 2, 'correct form is $number (not %s)' % tmp)
+            # this is an IMMEDIATE VALUE
             value = tmp.split('$')[1]
+            neg = 1
+            if value[0] == '-':
+                value = value[1:]
+                neg = -1
             zassert(value.isdigit(), 'value [%s] must be a digit' % value)
-            return int(value), 'TYPE_IMMEDIATE'
+            return neg * int(value), 'TYPE_IMMEDIATE'
         elif tmp[0] == '%':
+            # this is a REGISTER
             register = tmp.split('%')[1]
             return self.register_translate(register), 'TYPE_REGISTER'
-        elif tmp[0] == '(':
-            register = tmp.split('(')[1].split(')')[0].split('%')[1]
-            return '%d,%d,%d' % (0, self.register_translate(register), self.register_translate('zero')), 'TYPE_MEMORY'
         elif tmp[0] == '.':
+            # this is a LABEL
             targ = tmp
             return targ, 'TYPE_LABEL'
         elif tmp[0].isalpha() and not tmp[0].isdigit():
+            # this is a VARIABLE
             zassert(tmp in self.vars, 'Variable %s is not declared' % tmp)
-            # print '%d,%d,%d' % (self.vars[tmp], self.register_translate('zero'), self.register_translate('zero')), 'TYPE_MEMORY'
-            return '%d,%d,%d' % (self.vars[tmp], self.register_translate('zero'), self.register_translate('zero')), 'TYPE_MEMORY'
-        elif tmp[0].isdigit() or tmp[0] == '-':
-            # MOST GENERAL CASE: number(reg,reg) or number(reg)
-            # we ignore the common x86 number(reg,reg,constant) for now
+            return '%d,%d,%d,1' % (self.vars[tmp], self.register_translate('zero'), self.register_translate('zero')), 'TYPE_MEMORY'
+        elif tmp[0].isdigit() or tmp[0] == '-' or tmp[0] == '(':
+            # MOST GENERAL CASE: number(reg,reg) or number(reg) or number(reg,reg,number)
             neg = 1
             if tmp[0] == '-':
                 tmp = tmp[1:]
                 neg = -1
             s = tmp.split('(')
             if len(s) == 1:
+                # no parens -> we just assume that we have a constant value (an address), e.g., mov 10, %ax
                 value = neg * int(tmp)
-                # print '%d,%d,%d' % (int(value), self.register_translate('zero'), self.register_translate('zero')), 'TYPE_MEMORY'
-                return '%d,%d,%d' % (int(value), self.register_translate('zero'), self.register_translate('zero')), 'TYPE_MEMORY'
+                return '%d,%d,%d,1' % (int(value), self.register_translate('zero'), self.register_translate('zero')), 'TYPE_MEMORY'
             elif len(s) == 2:
-                value = neg * int(s[0])
-                t = s[1].split(')')[0].split(',')
+                # here we just assume that we have something in parentheses
+                # e.g., mov 10(%ax) or mov 10(%ax,%bx) or mov 10(%ax,%bx,10) or mov (%ax,%bx,10) or ...
+
+                # if no leading number exists, first char should be a paren; in that case, value is just made to be 0
+                # otherwise we should handle either a number or a negative number
+                if tmp[0] != '(':
+                    zassert(s[0].strip().isdigit() == True, 'First number should be a digit [%s]' % s[0])
+                    value = neg * int(s[0])
+                else:
+                    value = 0
+                t = s[1].split(')')[0].split('__BREAK__')
                 if len(t) == 1:
-                    register = t[0].split('%')[1]
-                    # print '%d,%d,%d' % (int(value), self.register_translate(register), self.register_translate('zero')), 'TYPE_MEMORY'
-                    return '%d,%d,%d' % (int(value), self.register_translate(register), self.register_translate('zero')), 'TYPE_MEMORY'
+                    register = self.getregname(t[0])
+                    return '%d,%d,%d,1' % (int(value), self.register_translate(register), self.register_translate('zero')), 'TYPE_MEMORY'
                 elif len(t) == 2:
-                    register1 = t[0].split('%')[1]
-                    register2 = t[1].split('%')[1]
-                    # print '%d,%d,%d' % (int(value), self.register_translate(register1), self.register_translate(register2)), 'TYPE_MEMORY'
-                    return '%d,%d,%d' % (int(value), self.register_translate(register1), self.register_translate(register2)), 'TYPE_MEMORY'
+                    register1 = self.getregname(t[0])
+                    register2 = self.getregname(t[1])
+                    return '%d,%d,%d,1' % (int(value), self.register_translate(register1), self.register_translate(register2)), 'TYPE_MEMORY'
+                elif len(t) == 3:
+                    register1 = self.getregname(t[0])
+                    register2 = self.getregname(t[1])
+                    scale     = int(t[2])
+                    return '%d,%d,%d,%d' % (int(value), self.register_translate(register1), self.register_translate(register2), scale), 'TYPE_MEMORY'
+                else:
+                    print 'mov: bad argument [%s]' % tmp
+                    exit(1)
+                    return
             else:
                 print 'mov: bad argument [%s]' % tmp
                 exit(1)
                 return
         zassert(True, 'mov: bad argument [%s]' % arg)
         return
+
+    #
+    # helper function in parsing complex args to mov/lea instruction
+    #
+    def removecommas(self, cline, inargs):
+        inparen = False
+        outargs = ''
+        for i in range(len(inargs)):
+            if inargs[i] == '(':
+                zassert(inparen == False, 'cannot have nested parenthesis in argument [%s]' % cline)
+                inparen = True
+            if inargs[i] == ')':
+                zassert(inparen == True, 'cannot have right parenthesis without first having left one [%s]' % cline)
+                inparen = False
+            if inparen == True:
+                if inargs[i] == ',':
+                    outargs += '__BREAK__'
+                else:
+                    outargs += inargs[i]
+            else:
+                outargs += inargs[i]
+        zassert(inparen == False, 'did not close parentheses [%s]' % cline)
+        return outargs
 
     #
     # LOAD a program into memory
@@ -418,7 +501,6 @@ class cpu:
 
         for line in fd:
             cline = line.rstrip()
-            # print 'PASS 1', cline
 
             # remove everything after the comment marker
             ctmp = cline.split('#')
@@ -433,10 +515,13 @@ class cpu:
 
             # only pay attention to labels and variables
             if tmp[0] == '.var':
-                assert(len(tmp) == 2)
+                assert(len(tmp) == 2 or len(tmp) == 3)
                 assert(tmp[0] not in self.vars)
                 self.vars[tmp[1]] = data
-                data += 4
+                mul = 1
+                if len(tmp) == 3:
+                    mul = int(tmp[2])
+                data += (4 * mul)
                 zassert(data < bpc, 'Load address overrun by static data')
                 if self.verbose: print 'ASSIGN VAR', tmp[0], "-->", tmp[1], self.vars[tmp[1]]
             elif tmp[0][0] == '.':
@@ -454,7 +539,6 @@ class cpu:
         fd = open(infile)
         for line in fd:
             cline = line.rstrip()
-            # print 'PASS 2', cline
 
             # remove everything after the comment marker
             ctmp = cline.split('#')
@@ -473,16 +557,23 @@ class cpu:
                 opcode           = tmp[0]
                 self.pmemory[pc] = cline.strip()
 
+                if self.verbose == True:
+                    print 'opcode', opcode
+
                 # MAIN OPCODE LOOP
                 if opcode == 'mov':
-                    rtmp = tmp[1].split(',', 1)
-                    zassert(len(tmp) == 2 and len(rtmp) == 2, 'mov: needs two args, separated by commas [%s]' % cline)
+                    # most painful one to parse (due to generic form)
+                    # could be mov x(r1,r2,4), r3 or mov r1, (r2,r3) or ...
+                    outargs = self.removecommas(cline, tmp[1])
+
+                    rtmp = outargs.split(',')
+                    zassert(len(rtmp) == 2, 'mov: needs two args, separated by commas [%s]' % cline)
                     arg1 = rtmp[0].strip()
                     arg2 = rtmp[1].strip()
                     (src, stype) = self.getarg(arg1)
                     (dst, dtype) = self.getarg(arg2)
                     # print 'MOV', src, stype, dst, dtype
-                    if stype == 'TYPE_MEMORY' and dtype == 'TYPE_MEMORY':
+                    if stype == 'TYPE_MEMORY'      and dtype == 'TYPE_MEMORY':
                         print 'bad mov: two memory arguments'
                         exit(1)
                     elif stype == 'TYPE_IMMEDIATE' and dtype == 'TYPE_IMMEDIATE':
@@ -494,20 +585,39 @@ class cpu:
                         self.memory[pc]  = 'self.move_i_to_r(%d, %d)' % (int(src), dst)
                     elif stype == 'TYPE_MEMORY'    and dtype == 'TYPE_REGISTER':
                         tmp = src.split(',')
-                        assert(len(tmp) == 3)
-                        self.memory[pc] = 'self.move_m_to_r(%d, %d, %d, %d)' % (int(tmp[0]), int(tmp[1]), int(tmp[2]), dst)
+                        assert(len(tmp) == 4)
+                        self.memory[pc] = 'self.move_m_to_r(%d, %d, %d, %d, %d)' % (int(tmp[0]), int(tmp[1]), int(tmp[2]), int(tmp[3]), dst)
                     elif stype == 'TYPE_REGISTER'  and dtype == 'TYPE_MEMORY':
                         tmp = dst.split(',')
-                        assert(len(tmp) == 3)
-                        self.memory[pc] = 'self.move_r_to_m(%d, %d, %d, %d)' % (src, int(tmp[0]), int(tmp[1]), int(tmp[2]))
+                        assert(len(tmp) == 4)
+                        self.memory[pc] = 'self.move_r_to_m(%d, %d, %d, %d, %d)' % (src, int(tmp[0]), int(tmp[1]), int(tmp[2]), int(tmp[3]))
                     elif stype == 'TYPE_REGISTER'  and dtype == 'TYPE_REGISTER':
                         self.memory[pc] = 'self.move_r_to_r(%d, %d)' % (src, dst)
-                    elif stype == 'TYPE_IMMEDIATE'  and dtype == 'TYPE_MEMORY':
+                    elif stype == 'TYPE_IMMEDIATE' and dtype == 'TYPE_MEMORY':
                         tmp = dst.split(',')
-                        assert(len(tmp) == 3)
-                        self.memory[pc] = 'self.move_i_to_m(%d, %d, %d, %d)' % (src, int(tmp[0]), int(tmp[1]), int(tmp[2]))
+                        assert(len(tmp) == 4)
+                        self.memory[pc] = 'self.move_i_to_m(%d, %d, %d, %d, %d)' % (src, int(tmp[0]), int(tmp[1]), int(tmp[2]), int(tmp[3]))
                     else:
                         zassert(False, 'malformed mov instruction')
+                elif opcode == 'lea':
+                    rtmp = tmp[1].split(',', 1)
+                    zassert(len(tmp) == 2 and len(rtmp) == 2, 'lea: needs two args, separated by commas [%s]' % cline)
+                    arg1 = rtmp[0].strip()
+                    arg2 = rtmp[1].strip()
+                    (src, stype) = self.getarg(arg1)
+                    (dst, dtype) = self.getarg(arg2)
+                    if stype == 'TYPE_MEMORY' and dtype == 'TYPE_REGISTER':
+                        tmp = src.split(',')
+                        assert(len(tmp) == 4)
+                        self.memory[pc] = 'self.lea_m_to_r(%d, %d, %d, %d, %d)' % (int(tmp[0]), int(tmp[1]), int(tmp[2]), int(tmp[3]), dst)
+                    else:
+                        zassert(False, 'malformed lea instruction (should be memory address source to register destination')
+                elif opcode == 'neg':
+                    zassert(len(tmp) == 2, 'neg: takes one argument')
+                    arg = tmp[1].strip()
+                    (dst, dtype) = self.getarg(arg)
+                    zassert(dtype == 'TYPE_REGISTER', 'Can only neg a register')
+                    self.memory[pc] = 'self.neg_r(%d)' % dst
                 elif opcode == 'pop':
                     if len(tmp) == 1:
                         self.memory[pc] = 'self.pop()'
@@ -524,8 +634,8 @@ class cpu:
                         self.memory[pc] = 'self.push_r(%d)' % (int(src))
                     elif stype == 'TYPE_MEMORY':
                         tmp = src.split(',')
-                        assert(len(tmp) == 3)
-                        self.memory[pc] = 'self.push_m(%d,%d,%d)' % (int(tmp[0]), int(tmp[1]), int(tmp[2]))
+                        assert(len(tmp) == 4)
+                        self.memory[pc] = 'self.push_m(%d,%d,%d,%d)' % (int(tmp[0]), int(tmp[1]), int(tmp[2]), int(tmp[3]))
                     else:
                         zassert(False, 'Cannot push anything but registers')
                 elif opcode == 'call':
@@ -537,6 +647,19 @@ class cpu:
                 elif opcode == 'ret':
                     assert(len(tmp) == 1)
                     self.memory[pc] = 'self.ret()'
+                elif opcode == 'mul':
+                    rtmp = tmp[1].split(',', 1)
+                    zassert(len(tmp) == 2 and len(rtmp) == 2, 'mul: needs two args, separated by commas [%s]' % cline)
+                    arg1 = rtmp[0].strip()
+                    arg2 = rtmp[1].strip()
+                    (src, stype) = self.getarg(arg1)
+                    (dst, dtype) = self.getarg(arg2)
+                    if stype == 'TYPE_IMMEDIATE' and dtype == 'TYPE_REGISTER':
+                        self.memory[pc] = 'self.mul_i_to_r(%d, %d)' % (int(src), dst)
+                    elif stype == 'TYPE_REGISTER' and dtype == 'TYPE_REGISTER':
+                        self.memory[pc] = 'self.mul_r_to_r(%d, %d)' % (int(src), dst)
+                    else:
+                        zassert(False, 'malformed usage of add instruction')
                 elif opcode == 'add':
                     rtmp = tmp[1].split(',', 1)
                     zassert(len(tmp) == 2 and len(rtmp) == 2, 'add: needs two args, separated by commas [%s]' % cline)
@@ -571,7 +694,7 @@ class cpu:
                     (src, stype) = self.getarg(arg1)
                     (dst, dtype) = self.getarg(arg2)
                     tmp = dst.split(',')
-                    assert(len(tmp) == 3)
+                    assert(len(tmp) == 4)
                     if stype == 'TYPE_REGISTER' and dtype == 'TYPE_MEMORY':
                         self.memory[pc] = 'self.fetchadd(%d, %d, %d, %d)' % (src, int(tmp[0]), int(tmp[1]), int(tmp[2]))
                     else:
@@ -584,7 +707,7 @@ class cpu:
                     (src, stype) = self.getarg(arg1)
                     (dst, dtype) = self.getarg(arg2)
                     tmp = dst.split(',')
-                    assert(len(tmp) == 3)
+                    assert(len(tmp) == 4)
                     if stype == 'TYPE_REGISTER' and dtype == 'TYPE_MEMORY':
                         self.memory[pc] = 'self.atomic_exchange(%d, %d, %d, %d)' % (src, int(tmp[0]), int(tmp[1]), int(tmp[2]))
                     else:
@@ -658,6 +781,8 @@ class cpu:
 
     def print_headers(self, procs):
         # print some headers
+        if self.printstats == True:
+            print 'icount',
         if len(self.memtrace) > 0:
             for m in self.memtrace:
                 if m[0].isdigit():
@@ -680,6 +805,8 @@ class cpu:
         return
 
     def print_trace(self, newline):
+        if self.printstats == True:
+            print '%6d' % self.icount, 
         if len(self.memtrace) > 0:
             for m in self.memtrace:
                 if self.compute:
@@ -718,13 +845,27 @@ class cpu:
 
     def run(self, procs, intfreq, intrand):
         # hw init: cc's, interrupt frequency, etc.
-        interrupt = self.setint(intfreq, intrand)
-        icount    = 0
+        if procs.ismanual() == True:
+            intfreq   = 1
+            interrupt = 1
+            intrand   = False
 
+        interrupt   = self.setint(intfreq, intrand)
+        self.icount = 0
+
+        # you always get one printing
+        print ''
         self.print_headers(procs)
+        print ''
         self.print_trace(True)
         
         while True:
+            if self.headercount > 0 and self.icount % self.headercount == 0 and self.icount > 0:
+                print ''
+                self.print_headers(procs)
+                print ''
+                self.print_trace(True)
+            
             # need thread ID of current process
             tid = procs.getcurr().gettid()
 
@@ -743,13 +884,14 @@ class cpu:
             # output: thread-proportional spacing followed by PC and instruction
             dospace(tid)
             print prevPC, self.pmemory[prevPC]
-            icount += 1
+            self.icount += 1
 
             # halt instruction issued
             if rc == -1:
                 procs.done()
+                # finish execution by returning from run()
                 if procs.numdone() == procs.getnum():
-                    return icount
+                    return self.icount
                 procs.next()
                 procs.restore()
 
@@ -759,17 +901,26 @@ class cpu:
                 print ''
 
             # do interrupt processing
+            # just counts down the interrupt counter to zero
+            # when it gets to 0, or when the 'yield' instruction is issued (rc=-2)
+            # a switch takes place
+            # key thing: if manual scheduling is done (procsched), interrupt
+            # must take place every instruction for this to work
             interrupt -= 1
             if interrupt == 0 or rc == -2:
                 interrupt = self.setint(intfreq, intrand)
+                curr = procs.getcurr()
                 procs.save()
                 procs.next()
                 procs.restore()
+                next = procs.getcurr()
 
-                self.print_trace(False)
-                for i in range(procs.getnum()):
-                    print '------ Interrupt ------ ',
-                print ''
+                if procs.ismanual() == False or (procs.ismanual() == True and curr != next):
+                    self.print_trace(False)
+                    for i in range(procs.getnum()):
+                        print '------ Interrupt ------ ',
+                    print ''
+                
         # END: while
         return
 
@@ -781,15 +932,57 @@ class cpu:
 #
 # PROCESS LIST class
 #
+# Tracks all running processes in the program
+# Also deals with manual scheduling as specified by user
+#
 class proclist:
     def __init__(self):
-        self.plist  = []
-        self.curr   = 0
-        self.active = 0
+        self.plist     = []      # list of process objects
+        self.active    = 0       # tracks how many processes are active
+        self.manual    = False
+        self.procsched = []      # list of which processes to run in what order (by ID)
+        self.curr      = 0       # currently running process (index into procsched list)
+
+    def finalize(self, procsched):
+        if procsched == '':
+            for i in range(len(self.plist)):
+                self.procsched.append(i)
+            self.curr = 0
+            self.restore()
+            return
+
+        # in this case, user has passed in schedule
+        self.manual = True
+        for i in range(len(procsched)):
+            p = int(procsched[i])
+            if p >= self.getnum():
+                print 'bad schedule: cannot include a thread that does not exist (%d)' % p
+                exit(1)
+            self.procsched.append(p)
+        check = []
+        for p in self.procsched:
+            if p not in check:
+                check.append(p)
+        if len(check) != self.active:
+            print 'bad schedule: does not include ALL processes', self.procsched
+            exit(1)
+        self.curr = 0
+        self.restore()
+        return
+            
+    def addproc(self, p):
+        self.active += 1
+        self.plist.append(p)
+        return
+
+    def ismanual(self):
+        return self.manual
 
     def done(self):
-        self.plist[self.curr].setdone()
+        p = self.procsched[self.curr]
+        self.plist[p].setdone()
         self.active -= 1
+        return
 
     def numdone(self):
         return len(self.plist) - self.active
@@ -797,28 +990,27 @@ class proclist:
     def getnum(self):
         return len(self.plist)
 
-    def add(self, p):
-        self.active += 1
-        self.plist.append(p)
-
     def getcurr(self):
-        return self.plist[self.curr]
+        return self.plist[self.procsched[self.curr]]
 
     def save(self):
-        self.plist[self.curr].save()
+        self.plist[self.procsched[self.curr]].save()
+        return
 
     def restore(self):
-        self.plist[self.curr].restore()
+        self.plist[self.procsched[self.curr]].restore()
+        return
 
     def next(self):
-        for i in range(self.curr+1, len(self.plist)):
-            if self.plist[i].isdone() == False:
-                self.curr = i
+        while True:
+            self.curr += 1
+            if self.curr == len(self.procsched):
+                self.curr = 0
+            p = self.procsched[self.curr]
+            if self.plist[p].isdone() == False:
                 return
-        for i in range(0, self.curr+1):
-            if self.plist[i].isdone() == False:
-                self.curr = i
-                return
+        return
+
             
 #
 # PROCESS class
@@ -849,7 +1041,6 @@ class process:
 
         # stack
         self.regs[self.cpu.get_regnum('sp')] = stackbottom
-        # print 'REG', self.cpu.get_regnum('sp'), self.regs[self.cpu.get_regnum('sp')]
 
         return
 
@@ -884,6 +1075,8 @@ parser.add_option('-s', '--seed',      default=0,          help='the random seed
 parser.add_option('-t', '--threads',   default=2,          help='number of threads',                action='store',      type='int',    dest='numthreads')
 parser.add_option('-p', '--program',   default='',         help='source program (in .s)',           action='store',      type='string', dest='progfile')
 parser.add_option('-i', '--interrupt', default=50,         help='interrupt frequency',              action='store',      type='int',    dest='intfreq')
+parser.add_option('-P', '--procsched', default='',         help='control exactly which thread runs when',
+                                                                                                    action='store',      type='string', dest='procsched')
 parser.add_option('-r', '--randints',  default=False,      help='if interrupts are random',         action='store_true',                dest='intrand')
 parser.add_option('-a', '--argv',      default='',
                   help='comma-separated per-thread args (e.g., ax=1,ax=2 sets thread 0 ax reg to 1 and thread 1 ax reg to 2); specify multiple regs per thread via colon-separated list (e.g., ax=1:bx=2,cx=3 sets thread 0 ax and bx and just cx for thread 1)',
@@ -897,6 +1090,7 @@ parser.add_option('-R', '--regtrace',  default='',         help='comma-separated
 parser.add_option('-C', '--cctrace',   default=False,      help='should we trace condition codes',  action='store_true', dest='cctrace')
 parser.add_option('-S', '--printstats',default=False,      help='print some extra stats',           action='store_true', dest='printstats')
 parser.add_option('-v', '--verbose',   default=False,      help='print some extra info',            action='store_true', dest='verbose')
+parser.add_option('-H', '--headercount',default=-1,        help='how often to print a row header',  action='store',      type='int',    dest='headercount')
 parser.add_option('-c', '--compute',   default=False,      help='compute answers for me',           action='store_true', dest='solve')
 (options, args) = parser.parse_args()
 
@@ -905,6 +1099,7 @@ print 'ARG numthreads',          options.numthreads
 print 'ARG program',             options.progfile
 print 'ARG interrupt frequency', options.intfreq
 print 'ARG interrupt randomness',options.intrand
+print 'ARG procsched',           options.procsched
 print 'ARG argv',                options.argv
 print 'ARG load address',        options.loadaddr
 print 'ARG memsize',             options.memsize
@@ -916,6 +1111,8 @@ print 'ARG verbose',             options.verbose
 print ''
 
 seed       = int(options.seed)
+random.seed(seed)
+
 numthreads = int(options.numthreads)
 intfreq    = int(options.intfreq)
 zassert(intfreq > 0, 'Interrupt frequency must be greater than 0')
@@ -923,11 +1120,11 @@ intrand    = int(options.intrand)
 progfile   = options.progfile
 zassert(progfile != '', 'Program file must be specified')
 argv       = options.argv.split(',')
-zassert(len(argv) == numthreads or len(argv) == 1, 'argv: must be one per-thread or just one set of values for all threads') 
+zassert(len(argv) == numthreads or len(argv) == 1, 'argv: must be one per-thread or just one set of values for all threads')
+procsched  = options.procsched
 
 loadaddr   = options.loadaddr
 memsize    = options.memsize
-random.seed(seed)
 
 memtrace   = []
 if options.memtrace != '':
@@ -943,6 +1140,7 @@ cctrace    = options.cctrace
 
 printstats = options.printstats
 verbose    = options.verbose
+hdrcount   = options.headercount
         
 #
 # MAIN program
@@ -950,7 +1148,7 @@ verbose    = options.verbose
 debug = False
 debug = False
 
-cpu = cpu(memsize, memtrace, regtrace, cctrace, options.solve, verbose)
+cpu = cpu(memsize, memtrace, regtrace, cctrace, options.solve, verbose, printstats, hdrcount)
 
 # load a program
 cpu.load(progfile, loadaddr)
@@ -964,12 +1162,12 @@ for t in range(numthreads):
         arg = argv[pid]
     else:
         arg = argv[0]
-    procs.add(process(cpu, pid, loadaddr, stack, arg))
+    procs.addproc(process(cpu, pid, loadaddr, stack, arg))
     stack -= 1000
     pid += 1
 
-# get first one ready!
-procs.restore()
+# get first process ready to run
+procs.finalize(procsched)    
 
 # run it
 t1 = time.clock()
