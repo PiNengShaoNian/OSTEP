@@ -1,0 +1,2 @@
+python2 disk.py -a 7,30,8 -c # 795
+python2 disk.py -a 7,30,8 -c -p SSTF # 375
