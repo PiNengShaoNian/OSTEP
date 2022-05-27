@@ -2,4 +2,4 @@
 
 python2 disk.py -a 12,31 -c -S 40 -R 3 -p SSTF # Total: 405
 python2 disk.py -a 12,31 -c -S 40 -R 3 -p SATF # Total:  65
-出现差异的条件：寻道时间远小于旋转时间
+出现差异的条件寻道时间远小于旋转时间
