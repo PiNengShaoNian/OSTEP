@@ -1,0 +1,84 @@
+ python2 vsfs.py -s 21 -r -c
+ARG seed 21
+ARG numInodes 8
+ARG numData 8
+ARG numRequests 10
+ARG reverse True
+ARG printFinal False
+
+Initial state
+
+inode bitmap  10000000
+inodes        [d a:0 r:2] [] [] [] [] [] [] []
+data bitmap   10000000
+data          [(.,0) (..,0)] [] [] [] [] [] [] []
+
+mkdir("/o");
+
+inode bitmap  11000000
+inodes        [d a:0 r:3] [d a:1 r:2] [] [] [] [] [] []
+data bitmap   11000000
+data          [(.,0) (..,0) (o,1)] [(.,1) (..,0)] [] [] [] [] [] []
+
+creat("/b");
+
+inode bitmap  11100000
+inodes        [d a:0 r:3] [d a:1 r:2] [f a:-1 r:1] [] [] [] [] []
+data bitmap   11000000
+data          [(.,0) (..,0) (o,1) (b,2)] [(.,1) (..,0)] [] [] [] [] [] []
+
+creat("/o/q");
+
+inode bitmap  11110000
+inodes        [d a:0 r:3] [d a:1 r:2] [f a:-1 r:1] [f a:-1 r:1] [] [] [] []
+data bitmap   11000000
+data          [(.,0) (..,0) (o,1) (b,2)] [(.,1) (..,0) (q,3)] [] [] [] [] [] []
+
+fd=open("/b", O_WRONLY|O_APPEND); write(fd, buf, BLOCKSIZE); close(fd);
+
+inode bitmap  11110000
+inodes        [d a:0 r:3] [d a:1 r:2] [f a:2 r:1] [f a:-1 r:1] [] [] [] []
+data bitmap   11100000
+data          [(.,0) (..,0) (o,1) (b,2)] [(.,1) (..,0) (q,3)] [m] [] [] [] [] []
+
+fd=open("/o/q", O_WRONLY|O_APPEND); write(fd, buf, BLOCKSIZE); close(fd);
+
+inode bitmap  11110000
+inodes        [d a:0 r:3] [d a:1 r:2] [f a:2 r:1] [f a:3 r:1] [] [] [] []
+data bitmap   11110000
+data          [(.,0) (..,0) (o,1) (b,2)] [(.,1) (..,0) (q,3)] [m] [j] [] [] [] []
+
+creat("/o/j");
+
+inode bitmap  11111000
+inodes        [d a:0 r:3] [d a:1 r:2] [f a:2 r:1] [f a:3 r:1] [f a:-1 r:1] [] [] []
+data bitmap   11110000
+data          [(.,0) (..,0) (o,1) (b,2)] [(.,1) (..,0) (q,3) (j,4)] [m] [j] [] [] [] []
+
+unlink("/b");
+
+inode bitmap  11011000
+inodes        [d a:0 r:3] [d a:1 r:2] [] [f a:3 r:1] [f a:-1 r:1] [] [] []
+data bitmap   11010000
+data          [(.,0) (..,0) (o,1)] [(.,1) (..,0) (q,3) (j,4)] [] [j] [] [] [] []
+
+fd=open("/o/j", O_WRONLY|O_APPEND); write(fd, buf, BLOCKSIZE); close(fd);
+
+inode bitmap  11011000
+inodes        [d a:0 r:3] [d a:1 r:2] [] [f a:3 r:1] [f a:2 r:1] [] [] []
+data bitmap   11110000
+data          [(.,0) (..,0) (o,1)] [(.,1) (..,0) (q,3) (j,4)] [g] [j] [] [] [] []
+
+creat("/o/x");
+
+inode bitmap  11111000
+inodes        [d a:0 r:3] [d a:1 r:2] [f a:-1 r:1] [f a:3 r:1] [f a:2 r:1] [] [] []
+data bitmap   11110000
+data          [(.,0) (..,0) (o,1)] [(.,1) (..,0) (q,3) (j,4) (x,2)] [g] [j] [] [] [] []
+
+mkdir("/o/t");
+
+inode bitmap  11111100
+inodes        [d a:0 r:3] [d a:1 r:3] [f a:-1 r:1] [f a:3 r:1] [f a:2 r:1] [d a:4 r:2] [] []
+data bitmap   11111000
+data          [(.,0) (..,0) (o,1)] [(.,1) (..,0) (q,3) (j,4) (x,2) (t,5)] [g] [j] [(.,5) (..,1)] [] [] []

@@ -1,0 +1,84 @@
+ python2 vsfs.py -s 17 -c
+ARG seed 17
+ARG numInodes 8
+ARG numData 8
+ARG numRequests 10
+ARG reverse False
+ARG printFinal False
+
+Initial state
+
+inode bitmap  10000000
+inodes        [d a:0 r:2] [] [] [] [] [] [] []
+data bitmap   10000000
+data          [(.,0) (..,0)] [] [] [] [] [] [] []
+
+mkdir("/u");
+
+inode bitmap  11000000
+inodes        [d a:0 r:3] [d a:1 r:2] [] [] [] [] [] []
+data bitmap   11000000
+data          [(.,0) (..,0) (u,1)] [(.,1) (..,0)] [] [] [] [] [] []
+
+creat("/a");
+
+inode bitmap  11100000
+inodes        [d a:0 r:3] [d a:1 r:2] [f a:-1 r:1] [] [] [] [] []
+data bitmap   11000000
+data          [(.,0) (..,0) (u,1) (a,2)] [(.,1) (..,0)] [] [] [] [] [] []
+
+unlink("/a");
+
+inode bitmap  11000000
+inodes        [d a:0 r:3] [d a:1 r:2] [] [] [] [] [] []
+data bitmap   11000000
+data          [(.,0) (..,0) (u,1)] [(.,1) (..,0)] [] [] [] [] [] []
+
+mkdir("/z");
+
+inode bitmap  11100000
+inodes        [d a:0 r:4] [d a:1 r:2] [d a:2 r:2] [] [] [] [] []
+data bitmap   11100000
+data          [(.,0) (..,0) (u,1) (z,2)] [(.,1) (..,0)] [(.,2) (..,0)] [] [] [] [] []
+
+mkdir("/s");
+
+inode bitmap  11110000
+inodes        [d a:0 r:5] [d a:1 r:2] [d a:2 r:2] [d a:3 r:2] [] [] [] []
+data bitmap   11110000
+data          [(.,0) (..,0) (u,1) (z,2) (s,3)] [(.,1) (..,0)] [(.,2) (..,0)] [(.,3) (..,0)] [] [] [] []
+
+creat("/z/x");
+
+inode bitmap  11111000
+inodes        [d a:0 r:5] [d a:1 r:2] [d a:2 r:2] [d a:3 r:2] [f a:-1 r:1] [] [] []
+data bitmap   11110000
+data          [(.,0) (..,0) (u,1) (z,2) (s,3)] [(.,1) (..,0)] [(.,2) (..,0) (x,4)] [(.,3) (..,0)] [] [] [] []
+
+link("/z/x", "/u/b");
+
+inode bitmap  11111000
+inodes        [d a:0 r:5] [d a:1 r:2] [d a:2 r:2] [d a:3 r:2] [f a:-1 r:2] [] [] []
+data bitmap   11110000
+data          [(.,0) (..,0) (u,1) (z,2) (s,3)] [(.,1) (..,0) (b,4)] [(.,2) (..,0) (x,4)] [(.,3) (..,0)] [] [] [] []
+
+unlink("/u/b");
+
+inode bitmap  11111000
+inodes        [d a:0 r:5] [d a:1 r:2] [d a:2 r:2] [d a:3 r:2] [f a:-1 r:1] [] [] []
+data bitmap   11110000
+data          [(.,0) (..,0) (u,1) (z,2) (s,3)] [(.,1) (..,0)] [(.,2) (..,0) (x,4)] [(.,3) (..,0)] [] [] [] []
+
+fd=open("/z/x", O_WRONLY|O_APPEND); write(fd, buf, BLOCKSIZE); close(fd);
+
+inode bitmap  11111000
+inodes        [d a:0 r:5] [d a:1 r:2] [d a:2 r:2] [d a:3 r:2] [f a:4 r:1] [] [] []
+data bitmap   11111000
+data          [(.,0) (..,0) (u,1) (z,2) (s,3)] [(.,1) (..,0)] [(.,2) (..,0) (x,4)] [(.,3) (..,0)] [v] [] [] []
+
+creat("/u/b");
+
+inode bitmap  11111100
+inodes        [d a:0 r:5] [d a:1 r:2] [d a:2 r:2] [d a:3 r:2] [f a:4 r:1] [f a:-1 r:1] [] []
+data bitmap   11111000
+data          [(.,0) (..,0) (u,1) (z,2) (s,3)] [(.,1) (..,0) (b,5)] [(.,2) (..,0) (x,4)] [(.,3) (..,0)] [v] [] [] []
