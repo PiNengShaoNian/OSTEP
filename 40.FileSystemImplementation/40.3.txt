@@ -1,0 +1,3 @@
+python2 vsfs.py -d 2 -c -n 100 -p
+
+create操作不会失败，应为初始化的文件不需要数据块，相反mkdir操作会失败。
